@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Convertisseur de Devises</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #242424;
+      --border: #2e2e2e; --text: #f0ede8; --muted: #888;
+      --accent: #c8f04a; --accent-dark: #9abe30;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; }
+    header { text-align: center; margin-bottom: 2.5rem; }
+    header h1 { font-family: 'DM Mono', monospace; font-size: clamp(1.4rem, 4vw, 2rem); font-weight: 500; letter-spacing: -0.02em; }
+    header p { font-size: 0.85rem; color: var(--muted); margin-top: 0.4rem; font-weight: 300; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; width: 100%; max-width: 520px; }
+    .field-group { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 1.25rem; }
+    .field { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .field input[type="number"] { font-family: 'DM Mono', monospace; font-size: 1.6rem; font-weight: 500; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem 1rem; color: var(--text); width: 100%; outline: none; transition: border-color 0.2s; }
+    .field input[type="number"]:focus { border-color: var(--accent); }
+    .field input[type="number"]::-webkit-inner-spin-button, .field input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .field select { font-family: 'DM Sans', sans-serif; font-size: 0.95rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem 1rem; color: var(--text); width: 100%; outline: none; cursor: pointer; }
+    .swap-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 50%; width: 40px; height: 40px; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; color: var(--muted); font-size: 1.1rem; transition: all 0.2s; }
+    .swap-btn:hover { border-color: var(--accent); color: var(--accent); transform: rotate(180deg); }
+    .result-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .result-label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+    .result-value { font-family: 'DM Mono', monospace; font-size: clamp(1.6rem, 5vw, 2.2rem); font-weight: 500; color: var(--accent); word-break: break-all; }
+    .rate-info { display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; }
+    .rate-text { font-size: 0.8rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+    .status { font-size: 0.72rem; font-family: 'DM Mono', monospace; padding: 3px 10px; border-radius: 20px; background: #1a2e0a; color: var(--accent); border: 1px solid #3a5a1a; }
+    .status.error { background: #2e0a0a; color: #f04a4a; border-color: #5a1a1a; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+    .popular-label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
+    .popular-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .popular-pill { font-size: 0.8rem; font-family: 'DM Mono', monospace; padding: 6px 12px; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; color: var(--muted); background: transparent; transition: all 0.15s; }
+    .popular-pill:hover { border-color: var(--accent); color: var(--accent); background: #1a2e0a; }
+    footer { margin-top: 1.5rem; font-size: 0.75rem; color: var(--muted); font-family: 'DM Mono', monospace; text-align: center; }
+    footer a { color: var(--muted); text-decoration: underline; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>// convertisseur de devises</h1>
+  <p>Taux en temps réel via l'API Frankfurter (BCE)</p>
+</header>
+<div class="card">
+  <div class="field-group">
+    <div class="field">
+      <label>Montant</label>
+      <input type="number" id="amount" value="100" min="0" step="any" />
+    </div>
+    <div class="field">
+      <label>De</label>
+      <select id="from"></select>
+    </div>
+    <button class="swap-btn" onclick="swapCurrencies()">⇄</button>
+    <div class="field">
+      <label>Vers</label>
+      <select id="to"></select>
+    </div>
+  </div>
+  <div class="result-box">
+    <div class="result-label">Résultat</div>
+    <div class="result-value" id="result">—</div>
+    <div class="rate-info">
+      <span class="rate-text" id="rate-text">Chargement...</span>
+      <span class="status" id="status-badge">...</span>
+    </div>
+  </div>
+  <hr class="divider" />
+  <div class="popular-label">Paires populaires</div>
+  <div class="popular-grid" id="popular-grid"></div>
+</div>
+<footer>
+  Taux fournis par <a href="https://www.frankfurter.app" target="_blank">frankfurter.app</a> · Source : BCE
+</footer>
+<script>
+  const CURRENCIES = [
+    ['EUR','Euro','🇪🇺'],['USD','Dollar US','🇺🇸'],['GBP','Livre sterling','🇬🇧'],
+    ['CHF','Franc suisse','🇨🇭'],['JPY','Yen japonais','🇯🇵'],['CAD','Dollar canadien','🇨🇦'],
+    ['AUD','Dollar australien','🇦🇺'],['CNY','Yuan chinois','🇨🇳'],['MXN','Peso mexicain','🇲🇽'],
+    ['BRL','Real brésilien','🇧🇷'],['INR','Roupie indienne','🇮🇳'],['MAD','Dirham marocain','🇲🇦'],
+    ['DZD','Dinar algérien','🇩🇿'],['TND','Dinar tunisien','🇹🇳'],['EGP','Livre égyptienne','🇪🇬'],
+  ];
+  const POPULAR = [['EUR','USD'],['EUR','GBP'],['USD','JPY'],['GBP','EUR'],['EUR','CHF'],['USD','CAD']];
+  let rates = {};
+  const fromSel = document.getElementById('from');
+  const toSel = document.getElementById('to');
+  const amountInput = document.getElementById('amount');
+  const resultEl = document.getElementById('result');
+  const rateText = document.getElementById('rate-text');
+  const badge = document.getElementById('status-badge');
+  CURRENCIES.forEach(([code, name, flag]) => {
+    [fromSel, toSel].forEach(sel => {
+      const opt = document.createElement('option');
+      opt.value = code; opt.textContent = `${flag} ${code} — ${name}`;
+      sel.appendChild(opt);
+    });
+  });
+  fromSel.value = 'EUR'; toSel.value = 'USD';
+  async function fetchRates() {
+    try {
+      const res = await fetch('https://api.frankfurter.app/latest?from=EUR');
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      rates = data.rates; rates['EUR'] = 1;
+      badge.textContent = '● En direct'; badge.className = 'status';
+      convert();
+    } catch {
+      badge.textContent = '✕ Hors ligne'; badge.className = 'status error';
+      rateText.textContent = 'Impossible de charger les taux.';
+    }
+  }
+  function getRate(from, to) {
+    const fromEUR = from === 'EUR' ? 1 : (rates[from] ? 1 / rates[from] : null);
+    const toRate = to === 'EUR' ? 1 : (rates[to] ? rates[to] : null);
+    if (!fromEUR || !toRate) return null;
+    return fromEUR * toRate;
+  }
+  function convert() {
+    const from = fromSel.value, to = toSel.value;
+    const amount = parseFloat(amountInput.value) || 0;
+    const rate = getRate(from, to);
+    if (!rate) { resultEl.textContent = '—'; return; }
+    const converted = amount * rate;
+    const precision = converted > 100 ? 2 : converted > 1 ? 4 : 6;
+    resultEl.textContent = `${converted.toFixed(precision)} ${to}`;
+    rateText.textContent = `1 ${from} = ${rate.toFixed(4)} ${to}`;
+  }
+  function swapCurrencies() {
+    const tmp = fromSel.value; fromSel.value = toSel.value; toSel.value = tmp; convert();
+  }
+  const grid = document.getElementById('popular-grid');
+  POPULAR.forEach(([f, t]) => {
+    const btn = document.createElement('button');
+    btn.className = 'popular-pill'; btn.textContent = `${f} → ${t}`;
+    btn.onclick = () => { fromSel.value = f; toSel.value = t; convert(); };
+    grid.appendChild(btn);
+  });
+  amountInput.addEventListener('input', convert);
+  fromSel.addEventListener('change', convert);
+  toSel.addEventListener('change', convert);
+  fetchRates();
+</script>
+</body>
+</html>
