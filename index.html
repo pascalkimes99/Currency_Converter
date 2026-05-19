@@ -104,7 +104,7 @@
   fromSel.value = 'EUR'; toSel.value = 'USD';
   async function fetchRates() {
     try {
-      const res = await fetch('https://api.frankfurter.app/latest?from=EUR');
+      const res = await fetch('https://open.er-api.com/v6/latest/EUR');
       if (!res.ok) throw new Error();
       const data = await res.json();
       rates = data.rates; rates['EUR'] = 1;
